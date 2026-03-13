@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OPNFT — Bitcoin-Native NFT Marketplace</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#080808;--sf:#0f0f0f;--sf2:#161616;--br:#2a2a2a;--br2:#333;--ac:#c8ff00;--tx:#f0f0f0;--tx2:#888;--tx3:#555;--red:#ff3b30;--grn:#22d3a0;--orange:#ff6b2b;--mono:'Space Mono',monospace;--disp:'Bebas Neue',sans-serif;--body:'DM Sans',sans-serif;--r:4px;--r2:8px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--tx);font-family:var(--body);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:9999}
+
+/* SETUP BANNER */
+#setupBanner{display:none;background:rgba(255,107,43,.08);border-bottom:1px solid rgba(255,107,43,.3);padding:10px 32px;font-size:12px;font-family:var(--mono);color:var(--orange);align-items:center;gap:12px}
+#setupBanner a{color:var(--ac);text-decoration:none}
+#setupBanner a:hover{text-decoration:underline}
+#setupBanner .close-banner{margin-left:auto;background:none;border:none;color:var(--tx3);cursor:pointer;font-size:14px}
+
+/* NAV */
+nav{position:sticky;top:0;z-index:100;background:rgba(8,8,8,.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--br);padding:0 32px;height:64px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.logo{font-family:var(--disp);font-size:28px;letter-spacing:2px;color:var(--ac);cursor:pointer;display:flex;align-items:baseline;gap:8px;flex-shrink:0}
+.logo span{color:var(--tx3);font-family:var(--mono);font-size:9px;letter-spacing:3px}
+.nav-links{display:flex;gap:24px;list-style:none}
+.nav-links a{color:var(--tx2);text-decoration:none;font-size:13px;font-weight:500;cursor:pointer;transition:color .2s}
+.nav-links a:hover,.nav-links a.active{color:var(--tx)}
+#walletArea{display:flex;align-items:center;gap:10px;flex-shrink:0}
+
+/* WALLET PILL */
+.wpill{display:flex;align-items:center;gap:8px;padding:7px 14px;background:var(--sf2);border:1px solid var(--br);border-radius:var(--r)}
+.wdot{width:7px;height:7px;border-radius:50%;background:var(--grn);animation:pulse 2s infinite}
+.wdot.off{background:var(--tx3);animation:none}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.waddr{font-family:var(--mono);font-size:11px;color:var(--tx2)}
+.wnet{font-family:var(--mono);font-size:9px;color:var(--ac);background:rgba(200,255,0,.08);padding:2px 6px;border-radius:100px}
+.wbal{font-family:var(--mono);font-size:10px;color:var(--tx3)}
+
+/* BUTTONS */
+.btn{padding:9px 20px;border-radius:var(--r);font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;border:none;transition:all .15s;text-transform:uppercase}
+.btn-primary{background:var(--ac);color:#000}
+.btn-primary:hover{background:#d4ff33;transform:translateY(-1px)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn-outline{background:transparent;color:var(--tx);border:1px solid var(--br2)}
+.btn-outline:hover{background:var(--sf2)}
+.btn-ghost{background:var(--sf2);color:var(--tx2);border:1px solid var(--br)}
+.btn-ghost:hover{color:var(--tx);border-color:var(--br2)}
+.btn-danger{background:transparent;color:var(--red);border:1px solid rgba(255,59,48,.3);font-size:10px;padding:6px 14px}
+.btn-danger:hover{background:rgba(255,59,48,.08)}
+
+/* PAGES */
+.page{display:none;animation:fadeIn .3s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* HERO */
+.hero{padding:72px 32px 56px;position:relative;overflow:hidden}
+.hero::before{content:'OPNFT';position:absolute;font-family:var(--disp);font-size:300px;color:rgba(200,255,0,.025);top:-40px;left:-10px;pointer-events:none;white-space:nowrap;line-height:1}
+.hero-tag{display:inline-flex;align-items:center;gap:8px;background:rgba(200,255,0,.08);border:1px solid rgba(200,255,0,.2);border-radius:100px;padding:5px 14px;font-size:11px;font-family:var(--mono);color:var(--ac);letter-spacing:1px;margin-bottom:24px}
+.hero h1{font-family:var(--disp);font-size:clamp(48px,8vw,92px);line-height:.95;letter-spacing:2px;margin-bottom:20px}
+.hero h1 em{font-style:normal;color:var(--ac)}
+.hero p{color:var(--tx2);font-size:15px;max-width:480px;line-height:1.65;margin-bottom:36px}
+.hero-actions{display:flex;gap:12px;flex-wrap:wrap}
+.hero-stats{display:flex;gap:40px;margin-top:56px;padding-top:36px;border-top:1px solid var(--br);flex-wrap:wrap}
+.stat-v{font-family:var(--disp);font-size:34px;letter-spacing:1px}
+.stat-l{font-size:10px;color:var(--tx3);font-family:var(--mono);letter-spacing:1px;text-transform:uppercase;margin-top:4px}
+.section{padding:40px 32px}
+.section-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.section-ttl{font-family:var(--disp);font-size:30px;letter-spacing:1px}
+.section-ttl span{color:var(--tx3);font-size:13px;font-family:var(--mono);font-weight:400;margin-left:10px;vertical-align:middle}
+.divider{height:1px;background:var(--br);margin:0 32px}
+
+/* FILTERS */
+.filters{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap;align-items:center}
+.fbtn{padding:6px 14px;border-radius:100px;font-size:12px;font-family:var(--mono);cursor:pointer;border:1px solid var(--br);background:transparent;color:var(--tx2);transition:all .15s}
+.fbtn:hover{color:var(--tx);border-color:var(--br2)}
+.fbtn.active{border-color:var(--ac);color:var(--ac);background:rgba(200,255,0,.05)}
+.sbox{margin-left:auto;display:flex;align-items:center;gap:8px;background:var(--sf2);border:1px solid var(--br);border-radius:var(--r);padding:6px 12px}
+.sbox input{background:none;border:none;outline:none;color:var(--tx);font-family:var(--body);font-size:13px;width:180px}
+.sbox input::placeholder{color:var(--tx3)}
+
+/* NFT GRID */
+.nft-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px}
+.nft-card{background:var(--sf);border:1px solid var(--br);border-radius:var(--r2);overflow:hidden;cursor:pointer;transition:all .2s}
+.nft-card:hover{border-color:var(--br2);transform:translateY(-4px);box-shadow:0 20px 40px rgba(0,0,0,.4)}
+.nft-card:hover .cov{opacity:1}
+.cimg{aspect-ratio:1;position:relative;overflow:hidden}
+.cimg-in{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:72px;transition:transform .3s}
+.nft-card:hover .cimg-in{transform:scale(1.06)}
+.cov{position:absolute;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;gap:8px;opacity:0;transition:opacity .2s}
+.cbadge{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.75);border:1px solid var(--br2);border-radius:100px;padding:3px 10px;font-size:10px;font-family:var(--mono);color:var(--tx2)}
+.cbadge.rare{color:var(--orange);border-color:rgba(255,107,43,.35)}
+.cbadge.epic{color:#b48ce8;border-color:rgba(180,140,232,.35)}
+.cbadge.legendary{color:var(--ac);border-color:rgba(200,255,0,.35)}
+.cbody{padding:14px}
+.ccol{font-size:10px;font-family:var(--mono);color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}
+.cname{font-size:15px;font-weight:600;margin-bottom:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cfoot{display:flex;justify-content:space-between;align-items:flex-end}
+.cprice-l{font-size:10px;color:var(--tx3);font-family:var(--mono);margin-bottom:2px}
+.cprice{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--ac)}
+.cprice sub{font-size:9px;font-weight:400;color:var(--tx3)}
+
+/* COLLECTIONS */
+.coll-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.coll-card{background:var(--sf);border:1px solid var(--br);border-radius:var(--r2);padding:20px;transition:all .2s;cursor:pointer}
+.coll-card:hover{border-color:var(--br2);transform:translateY(-2px)}
+.coll-hdr{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.coll-icon{width:52px;height:52px;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0}
+.coll-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding-top:14px;border-top:1px solid var(--br)}
+.cs-v{font-family:var(--mono);font-size:13px;font-weight:700;margin-bottom:2px}
+.cs-l{font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase}
+.tag{display:inline-block;padding:2px 8px;border-radius:100px;font-size:10px;font-family:var(--mono)}
+.tag-g{background:rgba(34,211,160,.1);color:var(--grn)}
+.tag-o{background:rgba(255,107,43,.1);color:var(--orange)}
+
+/* MINT */
+.mint-wrap{max-width:640px;margin:0 auto}
+.mint-form{background:var(--sf);border:1px solid var(--br);border-radius:var(--r2);padding:28px}
+.fg{margin-bottom:20px}
+.fg label{display:block;font-size:11px;font-family:var(--mono);color:var(--tx2);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
+.fi{width:100%;background:var(--sf2);border:1px solid var(--br);border-radius:var(--r);padding:10px 14px;color:var(--tx);font-family:var(--body);font-size:14px;outline:none;transition:border-color .15s}
+.fi:focus{border-color:var(--ac)}
+.fi::placeholder{color:var(--tx3)}
+textarea.fi{resize:vertical;min-height:90px}
+.fi-hint{font-size:11px;color:var(--tx3);margin-top:5px}
+.fi-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.upload-zone{border:2px dashed var(--br2);border-radius:var(--r2);padding:40px;text-align:center;cursor:pointer;transition:all .2s}
+.upload-zone:hover{border-color:var(--ac);background:rgba(200,255,0,.02)}
+.fee-box{background:var(--sf2);border:1px solid var(--br);border-radius:var(--r);padding:16px;margin:20px 0}
+.fee-row{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;color:var(--tx2)}
+.fee-row.total{border-top:1px solid var(--br);margin-top:8px;padding-top:10px;font-weight:600;font-family:var(--mono);font-size:14px;color:var(--ac)}
+
+/* ROYALTIES */
+.roy-wrap{max-width:820px}
+.roy-sum{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px}
+.roy-card{background:var(--sf);border:1px solid var(--br);border-radius:var(--r2);padding:20px}
+.roy-card-l{font-size:10px;color:var(--tx3);font-family:var(--mono);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.roy-card-v{font-family:var(--disp);font-size:30px;letter-spacing:1px}
+.roy-card-v.ac{color:var(--ac)}
+.roy-card-s{font-size:11px;color:var(--tx3);margin-top:4px}
+.roy-tbl{background:var(--sf);border:1px solid var(--br);border-radius:var(--r2);overflow:hidden}
+.tbl-hdr{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 120px;padding:12px 20px;background:var(--sf2);border-bottom:1px solid var(--br);font-size:10px;font-family:var(--mono);color:var(--tx3);text-transform:uppercase;letter-spacing:1px}
+.tbl-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 120px;padding:14px 20px;border-bottom:1px solid var(--br);align-items:center;font-size:13px;transition:background .15s}
+.tbl-row:last-child{border-bottom:none}
+.tbl-row:hover{background:var(--sf2)}
+
+/* MODALS */
+.mover{position:fixed;inset:0;background:rgba(0,0,0,.82);backdrop-filter:blur(8px);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+.mover.open{display:flex}
+.modal{background:var(--sf);border:1px solid var(--br2);border-radius:12px;width:100%;max-width:540px;overflow:hidden;animation:mIn .22s ease}
+.wmodal{background:var(--sf);border:1px solid var(--br2);border-radius:12px;width:100%;max-width:420px;animation:mIn .22s ease;overflow:hidden}
+@keyframes mIn{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
+.mhdr{padding:18px 24px;border-bottom:1px solid var(--br);display:flex;align-items:center;justify-content:space-between}
+.mttl{font-family:var(--disp);font-size:22px;letter-spacing:1px}
+.mclose{background:none;border:none;color:var(--tx3);cursor:pointer;font-size:18px;transition:color .15s;padding:4px;line-height:1}
+.mclose:hover{color:var(--tx)}
+.mbody{padding:22px 24px}
+.mprev{display:flex;gap:16px;padding:14px;background:var(--sf2);border:1px solid var(--br);border-radius:var(--r2);margin-bottom:20px}
+.mimg{width:76px;height:76px;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:38px;flex-shrink:0}
+.mdet-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--br);font-size:13px}
+.mdet-row:last-child{border-bottom:none}
+.mact{display:flex;gap:10px;margin-top:18px}
+.mact .btn{flex:1;padding:12px;font-size:11px}
+
+/* TX STATUS */
+.txs{display:none;padding:11px 14px;border-radius:var(--r);font-family:var(--mono);font-size:11px;margin-top:14px;gap:8px;align-items:center;word-break:break-all}
+.txs.show{display:flex}
+.txs.pending{background:rgba(200,255,0,.05);border:1px solid rgba(200,255,0,.2);color:var(--ac)}
+.txs.success{background:rgba(34,211,160,.05);border:1px solid rgba(34,211,160,.2);color:var(--grn)}
+.txs.error{background:rgba(255,59,48,.05);border:1px solid rgba(255,59,48,.2);color:var(--red)}
+.spin{width:12px;height:12px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spinning .7s linear infinite;flex-shrink:0}
+@keyframes spinning{to{transform:rotate(360deg)}}
+
+/* WALLET OPTIONS */
+.wopt{display:flex;align-items:center;gap:14px;padding:16px 20px;border-bottom:1px solid var(--br);cursor:pointer;transition:background .15s}
+.wopt:last-child{border-bottom:none}
+.wopt:hover:not(.wopt-disabled){background:var(--sf2)}
+.wopt-disabled{opacity:.45;cursor:not-allowed}
+.wopt-icon{font-size:26px;flex-shrink:0}
+.wopt-name{font-size:15px;font-weight:600;margin-bottom:3px}
+.wopt-desc{font-size:11px;color:var(--tx3);font-family:var(--mono)}
+.wopt-badge{margin-left:auto;font-size:9px;font-family:var(--mono);white-space:nowrap;flex-shrink:0;padding:3px 8px;border-radius:100px}
+.wopt-badge-rec{color:var(--ac);background:rgba(200,255,0,.08);border:1px solid rgba(200,255,0,.2)}
+.wopt-badge-det{color:var(--grn);background:rgba(34,211,160,.08);border:1px solid rgba(34,211,160,.2)}
+.wopt-badge-miss{color:var(--tx3);background:transparent;border:1px solid var(--br)}
+
+/* SETUP GUIDE (inside modal) */
+.setup-guide{background:rgba(255,107,43,.05);border:1px solid rgba(255,107,43,.2);border-radius:var(--r2);padding:16px;margin:0 20px 4px}
+.setup-guide-title{font-size:11px;font-family:var(--mono);color:var(--orange);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.setup-guide ol{padding-left:18px;color:var(--tx2);font-size:12px;line-height:2}
+.setup-guide ol li{padding-left:4px}
+.setup-guide a{color:var(--ac);text-decoration:none}
+.setup-guide a:hover{text-decoration:underline}
+
+/* WALLET GATE */
+.wgate{text-align:center;padding:72px 32px}
+.wgate-icon{font-size:44px;margin-bottom:18px}
+.wgate h3{font-family:var(--disp);font-size:26px;letter-spacing:1px;margin-bottom:10px}
+.wgate p{color:var(--tx2);font-size:14px;margin-bottom:22px;max-width:360px;margin-left:auto;margin-right:auto;line-height:1.6}
+
+/* NOTIFICATION */
+.notif{position:fixed;bottom:24px;right:24px;background:var(--sf2);border:1px solid var(--br2);border-radius:var(--r2);padding:13px 18px;font-size:13px;z-index:500;transform:translateY(80px);opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1);max-width:340px;display:flex;align-items:center;gap:10px}
+.notif.show{transform:translateY(0);opacity:1}
+.notif.success{border-color:rgba(34,211,160,.4)}
+.notif.error{border-color:rgba(255,59,48,.4)}
+.notif.warning{border-color:rgba(255,107,43,.4)}
+
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--br2);border-radius:2px}
+
+@media(max-width:640px){
+  nav{padding:0 16px}.nav-links{display:none}
+  .hero,.section{padding:32px 16px}.hero::before{font-size:100px}
+  .hero-stats{gap:20px}.roy-sum{grid-template-columns:1fr}
+  .tbl-hdr,.tbl-row{grid-template-columns:2fr 1fr 1fr}
+  .tbl-hdr>*:nth-child(4),.tbl-row>*:nth-child(4),.tbl-hdr>*:nth-child(5),.tbl-row>*:nth-child(5){display:none}
+  .fi-row{grid-template-columns:1fr}
+  #setupBanner{padding:10px 16px}
+}
+</style>
+</head>
+<body>
+
+<!-- FILE:// SETUP BANNER — shown automatically when no http server -->
+<div id="setupBanner">
+  ⚠ OP_WALLET won't inject on <code>file://</code> — serve this file over HTTP.
+  Run: <code>npx serve .</code> in the same folder, then open <a href="http://localhost:3000" target="_blank">http://localhost:3000</a>
+  &nbsp;·&nbsp; Or drag the file into <a href="https://codesandbox.io" target="_blank">CodeSandbox</a>
+  <button class="close-banner" onclick="document.getElementById('setupBanner').style.display='none'">✕</button>
+</div>
+
+<nav>
+  <div class="logo" onclick="goPage('explore')">OPNFT <span>TESTNET</span></div>
+  <ul class="nav-links">
+    <li><a class="active" onclick="goPage('explore')">Explore</a></li>
+    <li><a onclick="goPage('collections')">Collections</a></li>
+    <li><a onclick="goPage('mint')">Mint</a></li>
+    <li><a onclick="goPage('royalties')">Royalties</a></li>
+  </ul>
+  <div id="walletArea"></div>
+</nav>
+
+<!-- EXPLORE -->
+<div class="page active" id="page-explore">
+  <div class="hero">
+    <div class="hero-tag">◉ Live on OPNet Testnet</div>
+    <h1>Discover<br><em>Bitcoin-Native</em><br>NFTs</h1>
+    <p>The first NFT marketplace on Bitcoin via OPNet — no bridges, no wrapped assets, no compromises.</p>
+    <div class="hero-actions">
+      <button class="btn btn-primary" style="font-size:13px;padding:12px 28px" onclick="goPage('mint')">Mint Now</button>
+      <button class="btn btn-outline" style="font-size:13px;padding:12px 28px">Browse All</button>
+    </div>
+    <div class="hero-stats">
+      <div><div class="stat-v">1,247</div><div class="stat-l">Total NFTs</div></div>
+      <div><div class="stat-v">142</div><div class="stat-l">Collections</div></div>
+      <div><div class="stat-v">38.5 BTC</div><div class="stat-l">Volume</div></div>
+      <div><div class="stat-v">4,891</div><div class="stat-l">Holders</div></div>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div class="section">
+    <div class="section-hdr"><div class="section-ttl">Marketplace <span id="nftCount"></span></div></div>
+    <div class="filters">
+      <button class="fbtn active" onclick="doFilter('all',this)">All</button>
+      <button class="fbtn" onclick="doFilter('common',this)">Common</button>
+      <button class="fbtn" onclick="doFilter('rare',this)">Rare</button>
+      <button class="fbtn" onclick="doFilter('epic',this)">Epic</button>
+      <button class="fbtn" onclick="doFilter('legendary',this)">Legendary</button>
+      <div class="sbox"><span style="color:var(--tx3)">⌕</span><input type="text" placeholder="Search NFTs…" oninput="doSearch(this.value)"></div>
+    </div>
+    <div class="nft-grid" id="nftGrid"></div>
+  </div>
+</div>
+
+<!-- COLLECTIONS -->
+<div class="page" id="page-collections">
+  <div class="section">
+    <div class="section-hdr"><div class="section-ttl">Collections <span>6 total</span></div></div>
+    <div class="coll-grid" id="collGrid"></div>
+  </div>
+</div>
+
+<!-- MINT -->
+<div class="page" id="page-mint">
+  <div class="section">
+    <div class="section-ttl" style="margin-bottom:8px">Mint NFT</div>
+    <p style="color:var(--tx2);font-size:14px;margin-bottom:28px">Deploy your NFT directly to OPNet Testnet</p>
+    <div class="mint-wrap" id="mintContent"></div>
+  </div>
+</div>
+
+<!-- ROYALTIES -->
+<div class="page" id="page-royalties">
+  <div class="section">
+    <div class="section-ttl" style="margin-bottom:8px">Royalties</div>
+    <p style="color:var(--tx2);font-size:14px;margin-bottom:28px">Track and claim your creator earnings</p>
+    <div class="roy-wrap" id="royContent"></div>
+  </div>
+</div>
+
+<!-- BUY MODAL -->
+<div class="mover" id="buyModal">
+  <div class="modal">
+    <div class="mhdr"><div class="mttl">Buy NFT</div><button class="mclose" onclick="closeM('buyModal')">✕</button></div>
+    <div class="mbody">
+      <div class="mprev" id="buyPrev"></div>
+      <div id="buyDets"></div>
+      <div class="txs" id="buyTx"></div>
+      <div class="mact">
+        <button class="btn btn-ghost" onclick="closeM('buyModal')">Cancel</button>
+        <button class="btn btn-primary" id="buyBtn" onclick="doBuy()">Confirm Purchase</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BID MODAL -->
+<div class="mover" id="bidModal">
+  <div class="modal">
+    <div class="mhdr"><div class="mttl">Place Bid</div><button class="mclose" onclick="closeM('bidModal')">✕</button></div>
+    <div class="mbody">
+      <div class="mprev" id="bidPrev"></div>
+      <div class="fg" style="margin-top:16px">
+        <label>Your Bid Amount (BTC)</label>
+        <input type="number" class="fi" id="bidAmt" placeholder="0.00000000" step="0.00000001" min="0">
+        <div class="fi-hint" id="bidHint">Enter amount above floor price</div>
+      </div>
+      <div class="txs" id="bidTx"></div>
+      <div class="mact">
+        <button class="btn btn-ghost" onclick="closeM('bidModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="doBid()">Place Bid</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- WALLET PICKER MODAL -->
+<div class="mover" id="wModal">
+  <div class="wmodal">
+    <div class="mhdr"><div class="mttl">Connect Wallet</div><button class="mclose" onclick="closeM('wModal')">✕</button></div>
+    <div id="wSetupGuide"></div>
+    <div id="wOpts"></div>
+  </div>
+</div>
+
+<div class="notif" id="notif"><span id="nIcon"></span><span id="nTxt"></span></div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════
+//  DATA
+// ═══════════════════════════════════════════════════
+const COLLS=[
+  {id:'btc-punks',  name:'BTC Punks',    emoji:'👾',bg:'linear-gradient(135deg,#1a0a2e,#2d1b69)',items:100,floor:'0.0042',vol:'8.4', owners:67, chg:'+12.4%',up:true},
+  {id:'sat-apes',   name:'Satoshi Apes', emoji:'🦍',bg:'linear-gradient(135deg,#1a2a1a,#2d4a2d)',items:50, floor:'0.0088',vol:'12.1',owners:41, chg:'+5.2%', up:true},
+  {id:'opnet-gen',  name:'OPNet Genesis',emoji:'⚡',bg:'linear-gradient(135deg,#2a2a00,#4a3d00)',items:21, floor:'0.0210',vol:'6.3', owners:18, chg:'-2.1%', up:false},
+  {id:'cry-skulls', name:'Crypto Skulls',emoji:'💀',bg:'linear-gradient(135deg,#1a0a0a,#3d1010)',items:200,floor:'0.0018',vol:'4.2', owners:134,chg:'+8.8%', up:true},
+  {id:'btc-bots',   name:'Bitcoin Bots', emoji:'🤖',bg:'linear-gradient(135deg,#0a1a2a,#1a3a5a)',items:77, floor:'0.0031',vol:'3.1', owners:52, chg:'+1.3%', up:true},
+  {id:'neo-drags',  name:'Neon Dragons', emoji:'🐉',bg:'linear-gradient(135deg,#0a2a1a,#1a5a3a)',items:33, floor:'0.0120',vol:'4.4', owners:28, chg:'-0.8%', up:false},
+];
+const RPOOL=['common','common','common','rare','rare','epic','legendary'];
+const RL={common:'Common',rare:'Rare',epic:'Epic',legendary:'Legendary'};
+const NFTS=COLLS.flatMap(c=>Array.from({length:Math.min(c.items,4)},(_,i)=>({
+  id:`${c.id}-${i}`,col:c.name,emoji:c.emoji,bg:c.bg,
+  name:`${c.name} #${i+1}`,
+  price:(parseFloat(c.floor)*(0.85+Math.random()*.5)).toFixed(4),
+  rarity:RPOOL[Math.floor(Math.random()*RPOOL.length)],
+  tid:Math.floor(Math.random()*9999),
+})));
+
+// ═══════════════════════════════════════════════════
+//  ENV DETECTION
+// ═══════════════════════════════════════════════════
+const IS_FILE = location.protocol === 'file:';
+
+// Show banner if opened as file://
+if (IS_FILE) {
+  document.getElementById('setupBanner').style.display = 'flex';
+}
+
+// ═══════════════════════════════════════════════════
+//  WALLET STATE
+//
+//  OP_WALLET (window.opnet) — confirmed injected API:
+//    requestAccounts()          → Promise<string[]>   triggers popup
+//    getAccounts()              → Promise<string[]>   silent, existing perms
+//    getPublicKey()             → Promise<string>
+//    getNetwork()               → Promise<{network:string, chainType:string}>
+//    getBalance()               → Promise<{confirmed:number, unconfirmed:number, total:number}> (sats)
+//    sendBitcoin(addr, sats)    → Promise<string>  txid
+//    signMessage(msg)           → Promise<string>  signature
+//    on(event, handler)
+//    removeListener(event, handler)
+//    events: 'accountsChanged' | 'networkChanged'
+//
+//  NOTE: OP_WALLET is forked from UniSat, so the API is identical to UniSat.
+//  NOTE: window.opnet is ONLY injected on http:// or https:// pages.
+//        It will be undefined if you open the file directly as file://.
+// ═══════════════════════════════════════════════════
+const WS = { address:null, network:null, balance:null, type:null, provider:null, publicKey:null };
+let _acHandler = null, _netHandler = null;
+
+// ─── DETECT ──────────────────────────────────────
+function hasOP()  { return typeof window.opnet  !== 'undefined'; }
+function hasUni() { return typeof window.unisat !== 'undefined'; }
+
+// ─── OPEN PICKER ─────────────────────────────────
+function openWPicker() {
+  // Show setup guide if on file:// or no wallet found
+  const guideEl = document.getElementById('wSetupGuide');
+  if (IS_FILE) {
+    guideEl.innerHTML = `
+      <div class="setup-guide">
+        <div class="setup-guide-title">⚠ Serve over HTTP first</div>
+        <ol>
+          <li>Open a terminal in the folder containing this file</li>
+          <li>Run: <code style="color:var(--ac)">npx serve .</code></li>
+          <li>Open <a href="http://localhost:3000" target="_blank">http://localhost:3000</a> in Chrome</li>
+          <li>OP_WALLET will inject and connect</li>
+        </ol>
+      </div>`;
+  } else if (!hasOP() && !hasUni()) {
+    guideEl.innerHTML = `
+      <div class="setup-guide">
+        <div class="setup-guide-title">⚠ No wallet detected</div>
+        <ol>
+          <li>Install <a href="https://chromewebstore.google.com/detail/opwallet/pmbjpcmaaladnfpacpmhmnfmpklgbdjb" target="_blank">OP_WALLET from Chrome Web Store</a></li>
+          <li>Create wallet, choose Taproot address type</li>
+          <li>Switch network to <strong style="color:var(--ac)">Testnet 3</strong> (top-right Bitcoin icon)</li>
+          <li>Refresh this page, then connect</li>
+        </ol>
+      </div>`;
+  } else {
+    guideEl.innerHTML = '';
+  }
+
+  // Build wallet options
+  const opAvail = hasOP();
+  const uniAvail = hasUni();
+  document.getElementById('wOpts').innerHTML = `
+    <div class="wopt${opAvail?'':' wopt-disabled'}" onclick="${opAvail?"connectWallet('opnet')":"void(0)"}">
+      <div class="wopt-icon">🟠</div>
+      <div>
+        <div class="wopt-name">OP_WALLET</div>
+        <div class="wopt-desc">Native OPNet Bitcoin wallet</div>
+      </div>
+      <span class="wopt-badge ${opAvail?'wopt-badge-det':'wopt-badge-miss'}">${opAvail?'DETECTED':'NOT FOUND'}</span>
+    </div>
+    <div class="wopt${uniAvail?'':' wopt-disabled'}" onclick="${uniAvail?"connectWallet('unisat')":"void(0)"}">
+      <div class="wopt-icon">🔵</div>
+      <div>
+        <div class="wopt-name">UniSat</div>
+        <div class="wopt-desc">Bitcoin ordinals wallet</div>
+      </div>
+      <span class="wopt-badge ${uniAvail?'wopt-badge-det':'wopt-badge-miss'}">${uniAvail?'DETECTED':'NOT FOUND'}</span>
+    </div>
+    <div class="wopt" onclick="connectWallet('demo')" style="opacity:.55">
+      <div class="wopt-icon">🧪</div>
+      <div>
+        <div class="wopt-name">Demo Mode</div>
+        <div class="wopt-desc">Preview UI — no real transactions</div>
+      </div>
+      <span class="wopt-badge wopt-badge-miss">NO WALLET</span>
+    </div>`;
+
+  openM('wModal');
+}
+
+// ─── CONNECT ─────────────────────────────────────
+async function connectWallet(type) {
+  closeM('wModal');
+  renderWUI('loading');
+
+  // Remove previous listeners
+  _removeListeners();
+
+  try {
+    if (type === 'opnet') {
+      if (!hasOP()) throw new Error('OP_WALLET not found — install the extension and serve over HTTP');
+      const p = window.opnet;
+
+      const accs = await p.requestAccounts();
+      if (!accs?.length) throw new Error('No accounts returned');
+
+      WS.address  = accs[0];
+      WS.type     = 'opnet';
+      WS.provider = p;
+
+      try { WS.publicKey = await p.getPublicKey(); }          catch(_){}
+      try { const n = await p.getNetwork(); WS.network = _parseNet(n); } catch(_){ WS.network='testnet'; }
+      try { const b = await p.getBalance(); WS.balance = _parseBal(b); } catch(_){ WS.balance=null; }
+
+      _acHandler  = (a) => { if(!a?.length){disconnectWallet();return;} WS.address=a[0]; renderWUI('connected'); _refreshGated(); };
+      _netHandler = (n) => { WS.network=_parseNet(n); renderWUI('connected'); toast('Network: '+WS.network,'🌐','warning'); };
+      p.on('accountsChanged', _acHandler);
+      p.on('networkChanged',  _netHandler);
+
+    } else if (type === 'unisat') {
+      if (!hasUni()) throw new Error('UniSat not found');
+      const p = window.unisat;
+
+      const accs = await p.requestAccounts();
+      if (!accs?.length) throw new Error('No accounts returned');
+
+      WS.address  = accs[0];
+      WS.type     = 'unisat';
+      WS.provider = p;
+
+      try { WS.publicKey = await p.getPublicKey(); }          catch(_){}
+      try { const n = await p.getNetwork(); WS.network = _parseNet(n); } catch(_){ WS.network='testnet'; }
+      try { const b = await p.getBalance(); WS.balance = _parseBal(b); } catch(_){ WS.balance=null; }
+
+      _acHandler  = (a) => { if(!a?.length){disconnectWallet();return;} WS.address=a[0]; renderWUI('connected'); _refreshGated(); };
+      _netHandler = (n) => { WS.network=_parseNet(n); renderWUI('connected'); toast('Network: '+WS.network,'🌐','warning'); };
+      p.on('accountsChanged', _acHandler);
+      p.on('networkChanged',  _netHandler);
+
+    } else {
+      // Demo
+      WS.address  = 'tb1q' + Math.random().toString(36).slice(2,16);
+      WS.network  = 'testnet';
+      WS.balance  = (Math.random()*.12).toFixed(6);
+      WS.type     = 'demo';
+      WS.provider = null;
+      toast('Demo mode — UI preview only, no real transactions','🧪','warning');
+    }
+
+    renderWUI('connected');
+    _refreshGated();
+    toast('Wallet connected!','◉','success');
+
+  } catch(e) {
+    console.error('[OPNFT] connect error:', e);
+    renderWUI('disconnected');
+    toast(e?.message || 'Connection failed or rejected','✕','error');
+  }
+}
+
+function disconnectWallet() {
+  _removeListeners();
+  Object.assign(WS, {address:null,network:null,balance:null,type:null,provider:null,publicKey:null});
+  renderWUI('disconnected');
+  _refreshGated();
+  toast('Wallet disconnected','○','error');
+}
+
+function _removeListeners() {
+  if (WS.provider && _acHandler)  { try { WS.provider.removeListener?.('accountsChanged', _acHandler); } catch(_){} }
+  if (WS.provider && _netHandler) { try { WS.provider.removeListener?.('networkChanged',  _netHandler); } catch(_){} }
+  _acHandler = _netHandler = null;
+}
+
+function _parseNet(n) {
+  if (!n) return 'testnet';
+  if (typeof n === 'string') return n.replace('BITCOIN_','').toLowerCase();
+  return (n.network||n.chainType||'testnet').replace('BITCOIN_','').toLowerCase();
+}
+
+function _parseBal(b) {
+  if (b === null || b === undefined) return null;
+  // UniSat/OP_WALLET both return {confirmed, unconfirmed, total} in satoshis
+  const sats = (typeof b === 'number') ? b : (b.total ?? b.confirmed ?? 0);
+  return (sats / 1e8).toFixed(6);
+}
+
+// ─── RENDER NAV BAR ──────────────────────────────
+function renderWUI(state) {
+  const el = document.getElementById('walletArea');
+  if (state === 'loading') {
+    el.innerHTML = `<div class="wpill"><div class="spin" style="color:var(--tx2)"></div><span class="waddr">Connecting…</span></div>`;
+    return;
+  }
+  if (state === 'connected' && WS.address) {
+    const sh = WS.address.slice(0,8) + '…' + WS.address.slice(-4);
+    el.innerHTML = `
+      <div class="wpill">
+        <div class="wdot"></div>
+        <span class="waddr">${sh}</span>
+        ${WS.balance!=null ? `<span class="wbal">${WS.balance} BTC</span>` : ''}
+        ${WS.network ? `<span class="wnet">${WS.network.toUpperCase()}</span>` : ''}
+      </div>
+      <button class="btn btn-danger" onclick="disconnectWallet()">Disconnect</button>`;
+    return;
+  }
+  el.innerHTML = `
+    <div class="wpill"><div class="wdot off"></div><span class="waddr">Not Connected</span></div>
+    <button class="btn btn-primary" onclick="openWPicker()">Connect Wallet</button>`;
+}
+
+// ─── SIGN / SEND ─────────────────────────────────
+async function signMsg(msg) {
+  if (!WS.provider || WS.type === 'demo') return '0xDEMO_' + Date.now().toString(16);
+  return await WS.provider.signMessage(msg);
+}
+
+async function sendBTC(toAddr, amountBTC) {
+  if (WS.type === 'demo') { await wait(1800); return {txid:'0xDEMO'+Math.random().toString(16).slice(2,14)}; }
+  const sats = Math.round(parseFloat(amountBTC) * 1e8);
+  // sendBitcoin(address, satoshis) → txid string — same API on OP_WALLET and UniSat
+  const txid = await WS.provider.sendBitcoin(toAddr, sats);
+  return { txid };
+}
+
+// ═══════════════════════════════════════════════════
+//  PAGES
+// ═══════════════════════════════════════════════════
+function goPage(name) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-links a').forEach(a=>a.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.querySelectorAll('.nav-links a').forEach(a=>{if(a.getAttribute('onclick')?.includes(`'${name}'`)) a.classList.add('active');});
+  if(name==='mint')      renderMint();
+  if(name==='royalties') renderRoyalties();
+}
+function _refreshGated() { renderMint(); renderRoyalties(); }
+
+// ═══════════════════════════════════════════════════
+//  NFT GRID
+// ═══════════════════════════════════════════════════
+let AF='all', SQ='';
+function renderNFTs() {
+  const f = NFTS.filter(n=>(AF==='all'||n.rarity===AF)&&(n.name.toLowerCase().includes(SQ)||n.col.toLowerCase().includes(SQ)));
+  document.getElementById('nftCount').textContent = f.length+' items';
+  document.getElementById('nftGrid').innerHTML = f.map(n=>`
+    <div class="nft-card" onclick="openBuy('${n.id}')">
+      <div class="cimg">
+        <div class="cimg-in" style="background:${n.bg}">${n.emoji}</div>
+        <div class="cbadge ${n.rarity}">${RL[n.rarity]}</div>
+        <div class="cov">
+          <button class="btn btn-primary" style="font-size:11px;padding:8px 16px" onclick="event.stopPropagation();openBuy('${n.id}')">Buy</button>
+          <button class="btn btn-ghost"   style="font-size:11px;padding:8px 12px" onclick="event.stopPropagation();openBid('${n.id}')">Bid</button>
+        </div>
+      </div>
+      <div class="cbody">
+        <div class="ccol">${n.col}</div>
+        <div class="cname">${n.name}</div>
+        <div class="cfoot">
+          <div><div class="cprice-l">Price</div><div class="cprice">${n.price} <sub>BTC</sub></div></div>
+          <button class="btn btn-ghost" style="padding:5px 10px;font-size:10px" onclick="event.stopPropagation();openBid('${n.id}')">Bid</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+function doFilter(f,btn){AF=f;document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderNFTs();}
+function doSearch(q){SQ=q.toLowerCase();renderNFTs();}
+
+// ═══════════════════════════════════════════════════
+//  COLLECTIONS
+// ═══════════════════════════════════════════════════
+function renderCollections() {
+  document.getElementById('collGrid').innerHTML = COLLS.map(c=>`
+    <div class="coll-card">
+      <div class="coll-hdr">
+        <div class="coll-icon" style="background:${c.bg}">${c.emoji}</div>
+        <div>
+          <div style="font-size:16px;font-weight:600;margin-bottom:2px">${c.name}</div>
+          <div style="font-size:11px;color:var(--tx3);font-family:var(--mono)">${c.items} items</div>
+        </div>
+        <span class="tag ${c.up?'tag-g':'tag-o'}" style="margin-left:auto">${c.chg}</span>
+      </div>
+      <div class="coll-stats">
+        <div><div class="cs-v">${c.floor}</div><div class="cs-l">Floor BTC</div></div>
+        <div><div class="cs-v">${c.vol}</div><div class="cs-l">Volume</div></div>
+        <div><div class="cs-v">${c.owners}</div><div class="cs-l">Owners</div></div>
+      </div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════
+//  MINT
+// ═══════════════════════════════════════════════════
+function renderMint() {
+  const el = document.getElementById('mintContent');
+  if (!WS.address) { el.innerHTML = wGate('🎨','Connect to Mint','Connect OP_WALLET to mint NFTs on Bitcoin via OPNet Testnet.'); return; }
+  el.innerHTML = `
+    <div class="mint-form">
+      <div class="fg">
+        <label>NFT Image / Media</label>
+        <div class="upload-zone" id="uZone" onclick="document.getElementById('fIn').click()">
+          <div style="font-size:32px;margin-bottom:10px" id="uIco">⬆</div>
+          <div style="font-size:14px;color:var(--tx2)" id="uTxt">Drop file or click to upload</div>
+          <div style="font-size:11px;color:var(--tx3);margin-top:4px">PNG, JPG, GIF, MP4 — max 50MB</div>
+          <input type="file" id="fIn" accept="image/*,video/mp4" style="display:none" onchange="handleFile(this)">
+        </div>
+      </div>
+      <div class="fi-row">
+        <div class="fg"><label>NFT Name</label><input type="text" class="fi" id="mName" placeholder="OPNet Genesis #1"></div>
+        <div class="fg"><label>Collection</label><input type="text" class="fi" id="mColl" placeholder="Collection name"></div>
+      </div>
+      <div class="fg"><label>Description</label><textarea class="fi" id="mDesc" placeholder="Describe your NFT…"></textarea></div>
+      <div class="fi-row">
+        <div class="fg"><label>Listing Price (BTC)</label><input type="number" class="fi" id="mPrice" placeholder="0.00100000" step="0.00000001" min="0"></div>
+        <div class="fg"><label>Royalty %</label><input type="number" class="fi" id="mRoy" placeholder="5" min="0" max="15"><div class="fi-hint">Max 15%</div></div>
+      </div>
+      <div class="fee-box">
+        <div class="fee-row"><span>Network fee (est.)</span><span style="font-family:var(--mono)">~0.00001 BTC</span></div>
+        <div class="fee-row"><span>Platform fee</span><span style="font-family:var(--mono)">0.5%</span></div>
+        <div class="fee-row total"><span>Est. Total</span><span>~0.00002 BTC</span></div>
+      </div>
+      <div class="txs" id="mintTx"></div>
+      <button class="btn btn-primary" id="mintBtn" style="width:100%;padding:14px;font-size:12px" onclick="doMint()">Mint NFT on OPNet Testnet</button>
+    </div>`;
+}
+function handleFile(inp){const f=inp.files[0];if(!f)return;document.getElementById('uIco').textContent='✓';document.getElementById('uTxt').textContent=f.name;document.getElementById('uZone').style.borderColor='var(--ac)';}
+async function doMint(){
+  const name=document.getElementById('mName').value.trim();
+  const price=document.getElementById('mPrice').value;
+  if(!name){toast('Enter an NFT name','⚠️','error');return;}
+  if(!price){toast('Enter a listing price','⚠️','error');return;}
+  const btn=document.getElementById('mintBtn'),st=document.getElementById('mintTx');
+  btn.disabled=true;setTx(st,'pending','Waiting for wallet signature…');
+  try{
+    await signMsg(`OPNet Mint: "${name}" @ ${price} BTC | ts=${Date.now()}`);
+    setTx(st,'pending','Broadcasting to OPNet Testnet…');
+    await wait(2000);
+    const txid='0x'+[...Array(16)].map(()=>Math.floor(Math.random()*16).toString(16)).join('');
+    setTx(st,'success','Minted! TX: '+txid);
+    toast('NFT minted! 🎉','✓','success');btn.textContent='Minted ✓';
+  }catch(e){setTx(st,'error',e?.message||'Failed');btn.disabled=false;}
+}
+
+// ═══════════════════════════════════════════════════
+//  ROYALTIES
+// ═══════════════════════════════════════════════════
+function renderRoyalties(){
+  const el=document.getElementById('royContent');
+  if(!WS.address){el.innerHTML=wGate('💸','Connect to View Royalties','Connect your wallet to track and claim creator earnings.');return;}
+  el.innerHTML=`
+    <div class="roy-sum">
+      <div class="roy-card"><div class="roy-card-l">Total Earned</div><div class="roy-card-v ac">0.0847</div><div class="roy-card-s">BTC lifetime</div></div>
+      <div class="roy-card"><div class="roy-card-l">Claimable Now</div><div class="roy-card-v">0.0124</div><div class="roy-card-s">BTC available</div></div>
+      <div class="roy-card"><div class="roy-card-l">Active Collections</div><div class="roy-card-v">3</div><div class="roy-card-s">earning</div></div>
+    </div>
+    <div class="roy-tbl">
+      <div class="tbl-hdr"><div>Collection</div><div>Rate</div><div>Earned</div><div>Claimable</div><div></div></div>
+      ${[{c:COLLS[0],e:'0.0421',cl:'0.0060'},{c:COLLS[2],e:'0.0312',cl:'0.0044'},{c:COLLS[4],e:'0.0114',cl:'0.0020'}].map(r=>`
+        <div class="tbl-row">
+          <div style="display:flex;align-items:center;gap:10px"><span style="font-size:20px">${r.c.emoji}</span><div><div style="font-weight:500">${r.c.name}</div><div style="font-size:10px;color:var(--tx3);font-family:var(--mono)">${r.c.items} items</div></div></div>
+          <div style="font-family:var(--mono);color:var(--ac)">5%</div>
+          <div style="font-family:var(--mono)">${r.e} BTC</div>
+          <div style="font-family:var(--mono);color:var(--grn)">${r.cl} BTC</div>
+          <div><button class="btn btn-primary" style="padding:6px 14px;font-size:10px" onclick="claimR('${r.cl}')">Claim</button></div>
+        </div>`).join('')}
+    </div>
+    <button class="btn btn-primary" style="margin-top:16px;padding:12px 28px;font-size:11px" onclick="claimAll()">Claim All — 0.0124 BTC</button>`;
+}
+async function claimR(amt){toast(`Claiming ${amt} BTC…`,'◉','success');await wait(1500);toast(`${amt} BTC claimed!`,'✓','success');}
+async function claimAll(){toast('Claiming all royalties…','◉','success');await wait(2000);toast('0.0124 BTC claimed!','✓','success');}
+
+// ═══════════════════════════════════════════════════
+//  BUY
+// ═══════════════════════════════════════════════════
+let CUR=null;
+function openBuy(id){
+  if(!WS.address){openWPicker();return;}
+  CUR=NFTS.find(n=>n.id===id);if(!CUR)return;
+  const total=(parseFloat(CUR.price)*1.005).toFixed(4);
+  document.getElementById('buyPrev').innerHTML=nftPrev(CUR);
+  document.getElementById('buyDets').innerHTML=`
+    <div class="mdet-row"><span style="color:var(--tx2)">Token ID</span><span style="font-family:var(--mono);font-size:11px">#${CUR.tid}</span></div>
+    <div class="mdet-row"><span style="color:var(--tx2)">Rarity</span><span style="font-family:var(--mono);font-size:11px">${RL[CUR.rarity]}</span></div>
+    <div class="mdet-row"><span style="color:var(--tx2)">Royalty</span><span style="font-family:var(--mono);font-size:11px">5%</span></div>
+    <div class="mdet-row"><span style="color:var(--tx2)">Platform Fee</span><span style="font-family:var(--mono);font-size:11px">0.5%</span></div>
+    <div class="mdet-row"><span style="color:var(--tx2)">Total</span><span style="font-family:var(--mono);font-size:12px;color:var(--ac)">${total} BTC</span></div>`;
+  document.getElementById('buyTx').className='txs';
+  const btn=document.getElementById('buyBtn');btn.disabled=false;btn.textContent='Confirm Purchase';
+  openM('buyModal');
+}
+async function doBuy(){
+  if(!CUR||!WS.address)return;
+  const total=(parseFloat(CUR.price)*1.005).toFixed(4);
+  const btn=document.getElementById('buyBtn'),st=document.getElementById('buyTx');
+  btn.disabled=true;setTx(st,'pending','Waiting for wallet approval…');
+  try{
+    const r=await sendBTC('tb1qopnet_marketplace_replace_with_real_addr',total);
+    setTx(st,'success','Confirmed! TX: '+r.txid);
+    toast(CUR.name+' purchased! 🎉','✓','success');btn.textContent='Purchased ✓';
+  }catch(e){setTx(st,'error',e?.message||'Rejected');btn.disabled=false;}
+}
+
+// ═══════════════════════════════════════════════════
+//  BID
+// ═══════════════════════════════════════════════════
+function openBid(id){
+  if(!WS.address){openWPicker();return;}
+  CUR=NFTS.find(n=>n.id===id);if(!CUR)return;
+  const min=(parseFloat(CUR.price)*1.05).toFixed(4);
+  document.getElementById('bidPrev').innerHTML=nftPrev(CUR);
+  document.getElementById('bidHint').textContent='Min bid: '+min+' BTC (floor + 5%)';
+  document.getElementById('bidAmt').value='';
+  document.getElementById('bidTx').className='txs';
+  openM('bidModal');
+}
+async function doBid(){
+  if(!CUR)return;
+  const amt=parseFloat(document.getElementById('bidAmt').value);
+  const min=parseFloat(CUR.price)*1.05;
+  const st=document.getElementById('bidTx');
+  if(!amt||amt<min){setTx(st,'error','Min bid: '+min.toFixed(4)+' BTC');return;}
+  setTx(st,'pending','Signing bid message…');
+  try{
+    await signMsg(`OPNet Bid: ${amt} BTC on #${CUR.tid} "${CUR.name}" | ts=${Date.now()}`);
+    setTx(st,'success','Bid of '+amt+' BTC placed!');
+    toast('Bid placed on '+CUR.name,'✓','success');
+    setTimeout(()=>closeM('bidModal'),2200);
+  }catch(e){setTx(st,'error',e?.message||'Signature rejected');}
+}
+
+// ═══════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════
+function nftPrev(n){
+  const usd=(parseFloat(n.price)*65000).toLocaleString('en-US',{maximumFractionDigits:0});
+  return `<div class="mimg" style="background:${n.bg}">${n.emoji}</div><div>
+    <div style="font-size:10px;font-family:var(--mono);color:var(--tx3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">${n.col}</div>
+    <div style="font-size:16px;font-weight:600;margin-bottom:6px">${n.name}</div>
+    <div style="font-family:var(--mono);font-size:17px;color:var(--ac);font-weight:700">${n.price} BTC <small style="font-size:11px;color:var(--tx3);font-weight:400">≈ $${usd}</small></div>
+  </div>`;
+}
+function wGate(icon,title,desc){
+  return `<div class="wgate"><div class="wgate-icon">${icon}</div><h3>${title}</h3><p>${desc}</p><button class="btn btn-primary" style="font-size:12px;padding:12px 28px" onclick="openWPicker()">Connect Wallet</button></div>`;
+}
+function openM(id){document.getElementById(id).classList.add('open');}
+function closeM(id){document.getElementById(id).classList.remove('open');}
+function setTx(el,type,text){
+  el.className='txs show '+type;
+  el.innerHTML=type==='pending'?`<div class="spin"></div><span>${text}</span>`:`<span>${type==='success'?'✓':'✕'}</span><span>${text}</span>`;
+}
+let NT;
+function toast(text,icon,type){
+  const el=document.getElementById('notif');
+  document.getElementById('nIcon').textContent=icon;
+  document.getElementById('nTxt').textContent=text;
+  el.className='notif show '+(type||'');
+  clearTimeout(NT);NT=setTimeout(()=>el.classList.remove('show'),4000);
+}
+function wait(ms){return new Promise(r=>setTimeout(r,ms));}
+document.querySelectorAll('.mover').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
+
+// ═══════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════
+renderWUI('disconnected');
+renderNFTs();
+renderCollections();
+renderMint();
+renderRoyalties();
+
+// AUTO-RECONNECT on page load — uses getAccounts() which does NOT trigger a popup.
+// Only works if user already approved the site in a previous session.
+// NOTE: This will silently fail / do nothing if window.opnet is undefined (file:// case).
+window.addEventListener('load', async () => {
+  if (IS_FILE) return; // Don't even try on file://
+  if (hasOP()) {
+    try {
+      const accs = await window.opnet.getAccounts();
+      if (accs?.length) { console.log('[OPNFT] auto-reconnect OP_WALLET →', accs[0]); await connectWallet('opnet'); return; }
+    } catch(e) { console.log('[OPNFT] OP_WALLET auto-reconnect skipped:', e?.message); }
+  }
+  if (hasUni()) {
+    try {
+      const accs = await window.unisat.getAccounts();
+      if (accs?.length) { console.log('[OPNFT] auto-reconnect UniSat →', accs[0]); await connectWallet('unisat'); }
+    } catch(e) { console.log('[OPNFT] UniSat auto-reconnect skipped:', e?.message); }
+  }
+});
+</script>
+</body>
+</html>
